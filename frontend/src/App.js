@@ -25,11 +25,11 @@ function App() {
   const suggestionBoxRef = useRef(null);
 
   useEffect(() => {
-    if (query.length > 3 && query !== lastAcceptedSuggestion) {
+    if (query.length > 1 && query !== lastAcceptedSuggestion) {
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
-      setTypingTimeout(setTimeout(() => fetchSuggestions(query), 2000)); // 2s delay before fetching
+      setTypingTimeout(setTimeout(() => fetchSuggestions(query), 500)); 
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -87,7 +87,10 @@ function App() {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (e) => {
+
+    e.preventDefault(); // Prevents the page from reloading
+
     if (!query.trim()) return;
     setLoading(true);
     setError("");
@@ -233,7 +236,6 @@ function App() {
 
     </div>
 
-    
   );
 }
 
