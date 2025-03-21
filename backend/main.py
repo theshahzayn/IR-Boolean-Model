@@ -5,6 +5,8 @@ import re
 import os
 from nltk.stem import PorterStemmer
 
+import difflib
+
 app = Flask(__name__)
 CORS(app)
 
@@ -19,23 +21,72 @@ with open("inverted_index.json", "r") as f:
 with open("positional_index.json", "r") as f:
     positional_index = json.load(f)
 
+
+# Extract all words (keys) from the inverted index
+all_words = list(inverted_index.keys())
+
+def suggest_words(query, max_suggestions=5):
+    query = query.lower().strip()
+    if not query:
+        return []
+
+    # Get close matches
+    close_matches = difflib.get_close_matches(query, all_words, n=max_suggestions, cutoff=0.75)  # Higher cutoff
+
+    # Additional filtering: Prefer words that start with the query
+    filtered_matches = [word for word in all_words if word.lower().startswith(query)]
+
+    # Merge and remove duplicates while keeping order
+    suggestions = list(dict.fromkeys(filtered_matches + close_matches))[:max_suggestions]
+
+    return suggestions
+
+
+@app.route("/suggest", methods=["GET"])
+def suggest():
+    query = request.args.get("query", "")
+    suggestions = suggest_words(query)
+    return jsonify({"suggestions": suggestions})
+
+
 # Preprocess query
 def preprocess_query(query):
-    query = query.lower()
+    query = query.lower().strip()
+    
+    if not query:
+        return [], []  # Return empty lists if query is empty
+
     tokens = re.findall(r'\b\w+\b', query)
     operators_set = {"and", "or", "not"}
+    
+    if not tokens:
+        return [], []
+
     processed_tokens = [stemmer.stem(token) if token not in operators_set and USE_STEMMING else token for token in tokens]
+
+    # Ensure we have alternating terms and operators (term op term op term)
+    if len(processed_tokens) % 2 == 0:
+        return [], []  # Invalid format
+
     terms = processed_tokens[0::2]
     ops = processed_tokens[1::2]
+
     return terms, ops
 
 # Boolean Query Processing
 def boolean_query(query):
     terms, ops = preprocess_query(query)
+
     if not terms:
         return []
+    
     result = set(inverted_index.get(terms[0], []))
+
     for i, op in enumerate(ops):
+
+        if i + 1 >= len(terms):  # Check to avoid index out of range
+            break  # Stop processing if no next term exists
+
         next_term = set(inverted_index.get(terms[i + 1], []))
         if op == "and":
             result &= next_term
@@ -47,6 +98,7 @@ def boolean_query(query):
 
 # Positional Query Processing
 def positional_query(word1, word2, k):
+
     result_docs = set()
     word1, word2 = stemmer.stem(word1.lower()), stemmer.stem(word2.lower())
     if word1 in positional_index and word2 in positional_index:
@@ -54,9 +106,10 @@ def positional_query(word1, word2, k):
             if doc in positional_index[word2]:
                 pos1 = positional_index[word1][doc]
                 pos2 = positional_index[word2][doc]
+
                 for p1 in pos1:
                     for p2 in pos2:
-                        if abs(p1 - p2) <= k:
+                        if abs(p1 - p2) <= k+1:
                             result_docs.add(doc)
                             break
     return list(result_docs)

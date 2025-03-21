@@ -1,95 +1,134 @@
+
+
+/* General Styling */
 body {
   margin: 0;
   padding: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(to right, #4facfe, #00f2fe);
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(to right, #992b17, #ba3922);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  color: #fff;
 }
 
+/* Container */
 .container {
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
   padding: 20px;
   height: 80vh;
   overflow-y: auto;
 }
 
-.search-bar-container {
-  position: sticky;
-  top: 0;
-  background: linear-gradient(to right, #4facfe, #00f2fe);
-  z-index: 1000;
-  padding-bottom: 10px;
-}
-
+/* Search Box */
 .search-box {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  padding: 25px;
   text-align: center;
+  transition: all 0.3s ease-in-out;
 }
 
+.search-box:hover {
+  transform: scale(1.02);
+}
+
+/* Title */
 .title {
-  font-size: 24px;
-  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: bold;
   color: #333;
+  margin-bottom: 15px;
 }
 
+/* Input Group */
 .input-group {
   display: flex;
   align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  background: #fff;
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+  position: relative;
+  width: 100%;
 }
+
+.input-group-container {
+  position: relative;
+  width: 100%;
+}
+
 
 .search-icon {
   margin: 0 10px;
-  color: #888;
+  color: #7b1799;
+  font-size: 18px;
 }
 
 .search-input {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: none;
   outline: none;
   font-size: 16px;
 }
 
+/* Animated Search Button */
 .search-button {
-  background: #007bff;
+  background: linear-gradient(135deg, #ff8a00, #e52e71);
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
-  transition: background 0.3s;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  outline: none;
 }
 
 .search-button:hover {
-  background: #0056b3;
+  background: linear-gradient(135deg, #e52e71, #ff8a00);
+  transform: scale(1.05);
 }
 
+.search-button:active {
+  transform: scale(0.95);
+}
+
+/* Loading Animation */
 .loading {
-  color: #007bff;
-  margin-top: 20px;
+  color: #ff8a00;
+  font-size: 16px;
+  margin-top: 15px;
+  font-weight: bold;
 }
 
+/* Error Message */
 .error {
-  color: #ff0000;
-  margin-top: 20px;
+  color: #ff4d4d;
+  font-size: 16px;
+  margin-top: 15px;
+  font-weight: bold;
 }
 
+/* Results */
 .results {
   margin-top: 20px;
   text-align: left;
+  background: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .results-info {
   font-weight: bold;
+  color: #333;
   margin-bottom: 10px;
 }
 
@@ -100,17 +139,71 @@ body {
 
 .result-item {
   background: #f9f9f9;
-  border-left: 4px solid #007bff;
-  padding: 10px;
+  border-left: 5px solid #ff8a00;
+  color: #333;
+  padding: 12px;
   margin-bottom: 10px;
-  border-radius: 5px;
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.result-item:hover {
+  transform: scale(1.02);
 }
 
 .result-id {
-  color: #007bff;
+  color: #e52e71;
+  font-weight: bold;
 }
 
 .result-snippet {
   margin-top: 5px;
   color: #555;
+}
+
+
+.suggestions {
+  position: absolute;
+  background: white;
+  color: #333;
+  border: 1px solid #ccc;
+  width: 100%; /* Match input width */
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  border-radius: 10px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  top: 100%; /* Position it right below the input */
+  left: 0;
+  padding: 5px;
+}
+
+
+/* Suggestion Item */
+.suggestions li {
+  padding: 5px 15px;
+  list-style: none;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  border-radius: 10px;
+  border-bottom: 1px solid #f1f1f1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.suggestions li:last-child {
+  border-bottom: none; /* Remove border for last item */
+}
+
+.suggestions li:hover, .suggestions li.active-suggestion {
+  background: #f1f3f4;
+  color: #202124;
+  font-weight: bold;
+}
+
+.suggestion-icon {
+  margin: 0 10px;
+  color: #7a7a7a;
+  font-size: 18px;
 }

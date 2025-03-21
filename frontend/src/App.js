@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaSearch } from "react-icons/fa";
 import { motion } from "framer-motion";
-import "./App.css"; // Import the CSS file for styling
+import "./App.css";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -10,19 +10,89 @@ function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchTime, setFetchTime] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [lastAcceptedSuggestion, setLastAcceptedSuggestion] = useState("");
+  const [typingTimeout, setTypingTimeout] = useState(null);
+
+  const inputRef = useRef(null);
+  const suggestionBoxRef = useRef(null);
+
+  useEffect(() => {
+    if (query.length > 3 && query !== lastAcceptedSuggestion) {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+      setTypingTimeout(setTimeout(() => fetchSuggestions(query), 2000)); // 2s delay before fetching
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [query]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        suggestionBoxRef.current &&
+        !suggestionBoxRef.current.contains(event.target) &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchSuggestions = async (input) => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/suggest", {
+        params: { query: input },
+      });
+      setSuggestions(response.data.suggestions || []);
+      setShowSuggestions(true);
+    } catch (err) {
+      console.error("Error fetching suggestions:", err);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setQuery(suggestion);
+    setLastAcceptedSuggestion(suggestion);
+    setShowSuggestions(false);
+    setSuggestions([]); // Clear suggestions list
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      setActiveSuggestion((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
+      setActiveSuggestion((prev) => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === "Enter") {
+      if (activeSuggestion >= 0 && suggestions.length > 0) {
+        setQuery(suggestions[activeSuggestion]);
+        setLastAcceptedSuggestion(suggestions[activeSuggestion]);
+        setShowSuggestions(false);
+        setSuggestions([]); // Clear suggestions list
+      }
+    }
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
-
     setLoading(true);
     setError("");
     setResults([]);
+    setShowSuggestions(false);
     const startTime = performance.now();
 
     try {
       const response = await axios.get("http://127.0.0.1:8000/search", {
         params: { query },
-        headers: { "Content-Type": "application/json" },
       });
 
       const endTime = performance.now();
@@ -43,7 +113,6 @@ function App() {
       setError("Error fetching results.");
       setResults([]);
     }
-
     setLoading(false);
   };
 
@@ -55,23 +124,58 @@ function App() {
         transition={{ duration: 0.5 }}
         className="search-box"
       >
-        <h1 className="title"> Smart Document Search</h1>
+        <h1 className="title">ShahQuery</h1>
 
-        <div className="input-group">
-          <FaSearch className="search-icon" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter search query..."
-            className="search-input"
-          />
-          <button onClick={handleSearch} className="search-button">
-            Search
-          </button>
+        <div className="input-group-container">
+          <div className="input-group">
+            <FaSearch className="search-icon" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter search query..."
+              className="search-input"
+              onFocus={() => query.length > 1 && setShowSuggestions(true)}
+            />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSearch}
+              className="search-button"
+            >
+              Search
+            </motion.button>
+          </div>
+
+          {/* Suggestions should be outside input-group but inside input-group-container */}
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="suggestions" ref={suggestionBoxRef}>
+              {suggestions.map((suggestion, index) => (
+                <li
+                  key={index}
+                  className={index === activeSuggestion ? "active-suggestion" : ""}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                   <FaSearch className="suggestion-icon" />
+                  {suggestion}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        {loading && <p className="loading">Fetching results...</p>}
+
+
+        {loading && (
+          <motion.p
+            className="loading"
+            animate={{ opacity: [0, 1], transition: { repeat: Infinity, duration: 1 } }}
+          >
+            Fetching results...
+          </motion.p>
+        )}
         {error && <p className="error">{error}</p>}
 
         {results.length > 0 && (
@@ -88,10 +192,7 @@ function App() {
               {results.map((doc) => (
                 <li key={doc.id} className="result-item">
                   <strong className="result-id">📄 Document ID:</strong> {doc.id}
-                  <p
-                    className="result-snippet"
-                    dangerouslySetInnerHTML={{ __html: doc.snippet }}
-                  />
+                  <p className="result-snippet" dangerouslySetInnerHTML={{ __html: doc.snippet }} />
                 </li>
               ))}
             </motion.ul>
