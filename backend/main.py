@@ -73,28 +73,59 @@ def preprocess_query(query):
 
     return terms, ops
 
-# Boolean Query Processing
+def expand_wildcard_query(term):
+    
+    # Convert wildcard symbols to regex
+    regex_pattern = term.lower().replace("*", ".*").replace("?", ".")
+    regex_pattern = f"^{regex_pattern}$"  # Match full words
+
+    # Perform case-insensitive matching
+    matching_words = [word for word in inverted_index if re.fullmatch(regex_pattern, word, re.IGNORECASE)]
+
+    if USE_STEMMING:
+        matching_words = [stemmer.stem(word) for word in matching_words]  # Apply stemming if enabled
+
+    return matching_words
+
+
 def boolean_query(query):
     terms, ops = preprocess_query(query)
-
+    
     if not terms:
         return []
-    
-    result = set(inverted_index.get(terms[0], []))
+
+    # Expand wildcard terms
+    expanded_terms = []
+    for term in terms:
+        if "*" in term or "?" in term:
+            matched_words = expand_wildcard_query(term)
+            if matched_words:  
+                expanded_terms.extend(matched_words)
+            else:
+                return []  # If no matches, return empty result
+        else:
+            expanded_terms.append(term)
+
+    if not expanded_terms:
+        return []
+
+    result = set(inverted_index.get(expanded_terms[0], []))
 
     for i, op in enumerate(ops):
+        if i + 1 >= len(expanded_terms):
+            break  # Avoid index error
 
-        if i + 1 >= len(terms):  # Check to avoid index out of range
-            break  # Stop processing if no next term exists
-
-        next_term = set(inverted_index.get(terms[i + 1], []))
+        next_term = set(inverted_index.get(expanded_terms[i + 1], []))
         if op == "and":
             result &= next_term
         elif op == "or":
             result |= next_term
         elif op == "not":
             result -= next_term
+
     return list(result)
+
+
 
 # Positional Query Processing
 def positional_query(word1, word2, k):
@@ -116,9 +147,8 @@ def positional_query(word1, word2, k):
 
 # Function to extract a snippet from the document file
 def get_document_snippet(doc_id, query_terms):
-    file_path = os.path.join(ABSTRACTS_FOLDER, f"{doc_id}.txt")  # Document files are stored as "1.txt", "2.txt", etc.
-    print(f"Looking for file: {file_path}")  # Debugging output
-
+    file_path = os.path.join(ABSTRACTS_FOLDER, f"{doc_id}.txt")
+    
     if not os.path.exists(file_path):
         return "Document not found"
     
@@ -127,31 +157,49 @@ def get_document_snippet(doc_id, query_terms):
             content = file.read()
 
         operators_set = {"and", "or", "not"}
-        filtered_terms = [term for term in query_terms if term.lower() not in operators_set]
+        filtered_terms = [term.lower() for term in query_terms if term.lower() not in operators_set]
+        
+        if not filtered_terms:
+            return content[:250] + "..."  # Return first 250 chars if no valid terms
 
+        # Find all matches of query terms in text
+        matches = []
+        for term in filtered_terms:
+            pattern = re.compile(rf"\b({re.escape(term)})\b", re.IGNORECASE)
+            for match in pattern.finditer(content):
+                matches.append((match.start(), match.end()))
+
+        if not matches:
+            return content[:250] + "..."  # No matches, return default snippet
+
+        # Sort matches by their start position
+        matches.sort()
+        
+        # Adjust snippet dynamically based on match positions
+        snippet_start = max(0, matches[0][0] - 50)  # Start 50 chars before the first match
+        snippet_end = min(len(content), matches[-1][1] + 50)  # End 50 chars after the last match
+
+        # Highlight query terms
         for term in filtered_terms:
             pattern = re.compile(rf"\b({re.escape(term)})\b", re.IGNORECASE)
             content = pattern.sub(r'<mark>\1</mark>', content)
 
-        # Return a snippet of 250 characters surrounding the first occurrence of any term
-        first_match = re.search(r'<mark>.*?</mark>', content)
-        if first_match:
-            start_idx = max(0, first_match.start() - 50)  # Start 50 chars before the match
-            end_idx = min(len(content), first_match.end() + 50)  # End 50 chars after the match
-            return "..." + content[start_idx:end_idx] + "..."
-        
-        return content[:250] + "..."  # Fallback: Return first 250 chars if no match
-
+        return "..." + content[snippet_start:snippet_end] + "..."
+    
     except Exception as e:
         return f"Error reading document: {str(e)}"
+
 
 @app.route("/search", methods=["GET"])
 def search():
     query = request.args.get("query", "")
     if not query:
         return jsonify({"error": "Query parameter is required"}), 400
-    
-    if "/" in query:  # Positional query
+
+    if query.startswith('"') and query.endswith('"'):  # Detect phrase query
+        phrase = query[1:-1]  # Remove quotes
+        results = phrase_query(phrase)
+    elif "/" in query:  # Positional query
         parts = query.split("/")
         if len(parts) == 2:
             left_side = parts[0].strip().split()
@@ -173,6 +221,33 @@ def search():
     snippets = {doc: get_document_snippet(doc, query.split()) for doc in results}
 
     return jsonify({"results": results, "snippets": snippets})
+
+
+def phrase_query(phrase):
+    words = phrase.lower().split()
+    words = [stemmer.stem(word) for word in words] if USE_STEMMING else words
+
+    if not all(word in positional_index for word in words):
+        return []  # If any word is missing, return empty
+
+    # Get positional lists for each word
+    possible_docs = set(positional_index[words[0]].keys())
+
+    for word in words[1:]:
+        possible_docs &= set(positional_index[word].keys())  # Intersection of docs
+
+    results = []
+    for doc in possible_docs:
+        positions = [positional_index[word][doc] for word in words]
+
+        # Check if words appear in sequence
+        for start_pos in positions[0]:  # First word positions
+            if all((start_pos + i) in positions[i] for i in range(1, len(words))):
+                results.append(doc)
+                break  # No need to check more occurrences in this doc
+
+    return results
+
 
 
 
