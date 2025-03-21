@@ -1,38 +1,116 @@
-.App {
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #4facfe, #00f2fe);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  height: 80vh;
+  overflow-y: auto;
+}
+
+.search-bar-container {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(to right, #4facfe, #00f2fe);
+  z-index: 1000;
+  padding-bottom: 10px;
+}
+
+.search-box {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #333;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.input-group {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  overflow: hidden;
 }
 
-.App-link {
-  color: #61dafb;
+.search-icon {
+  margin: 0 10px;
+  color: #888;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.search-input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+}
+
+.search-button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.search-button:hover {
+  background: #0056b3;
+}
+
+.loading {
+  color: #007bff;
+  margin-top: 20px;
+}
+
+.error {
+  color: #ff0000;
+  margin-top: 20px;
+}
+
+.results {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.results-info {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.results-list {
+  list-style: none;
+  padding: 0;
+}
+
+.result-item {
+  background: #f9f9f9;
+  border-left: 4px solid #007bff;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.result-id {
+  color: #007bff;
+}
+
+.result-snippet {
+  margin-top: 5px;
+  color: #555;
 }
