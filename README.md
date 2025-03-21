@@ -39,7 +39,8 @@ This project implements a **Boolean & Positional Search Engine** using Python (F
 2. **Search (`Main.py`)**  
    - Loads indexes  
    - Supports **Boolean search** (`AND`, `OR`, `NOT`)  
-   - Supports **Positional search** (`word1 word2 /k`)  
+   - Supports **Positional search** (`word1 word2 /k`)
+   - Supports **Exact phrase search** ("Machine Learning")
    - Returns relevant documents & snippets  
 
 3. **Frontend (`App.js`)**  
@@ -111,6 +112,11 @@ Frontend runs at: **`http://localhost:3000`**
 - Fetches full document content
   
 ![image](https://github.com/user-attachments/assets/3400ebaf-d5ab-4444-8a84-6b5195bb79c2)
+
+###  **Exact Query Search**
+
+![image](https://github.com/user-attachments/assets/b72e66d5-6090-48d0-be5d-b8b32ea721c3)
+
 
 ---
 
