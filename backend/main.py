@@ -1,14 +1,16 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Import CORS
+from flask_cors import CORS
 import json
 import re
+import os
 from nltk.stem import PorterStemmer
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
 stemmer = PorterStemmer()
 USE_STEMMING = True
+ABSTRACTS_FOLDER = "Abstracts"
 
 # Load indexes
 with open("inverted_index.json", "r") as f:
@@ -59,13 +61,44 @@ def positional_query(word1, word2, k):
                             break
     return list(result_docs)
 
+# Function to extract a snippet from the document file
+def get_document_snippet(doc_id, query_terms):
+    file_path = os.path.join(ABSTRACTS_FOLDER, f"{doc_id}.txt")  # Document files are stored as "1.txt", "2.txt", etc.
+    print(f"Looking for file: {file_path}")  # Debugging output
+
+    if not os.path.exists(file_path):
+        return "Document not found"
+    
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+
+        operators_set = {"and", "or", "not"}
+        filtered_terms = [term for term in query_terms if term.lower() not in operators_set]
+
+        for term in filtered_terms:
+            pattern = re.compile(rf"\b({re.escape(term)})\b", re.IGNORECASE)
+            content = pattern.sub(r'<mark>\1</mark>', content)
+
+        # Return a snippet of 250 characters surrounding the first occurrence of any term
+        first_match = re.search(r'<mark>.*?</mark>', content)
+        if first_match:
+            start_idx = max(0, first_match.start() - 50)  # Start 50 chars before the match
+            end_idx = min(len(content), first_match.end() + 50)  # End 50 chars after the match
+            return "..." + content[start_idx:end_idx] + "..."
+        
+        return content[:250] + "..."  # Fallback: Return first 250 chars if no match
+
+    except Exception as e:
+        return f"Error reading document: {str(e)}"
+
 @app.route("/search", methods=["GET"])
 def search():
     query = request.args.get("query", "")
     if not query:
         return jsonify({"error": "Query parameter is required"}), 400
     
-    if "/" in query:
+    if "/" in query:  # Positional query
         parts = query.split("/")
         if len(parts) == 2:
             left_side = parts[0].strip().split()
@@ -75,13 +108,18 @@ def search():
                     k = int(parts[1].strip())
                 except ValueError:
                     return jsonify({"error": "Invalid k value"}), 400
-                return jsonify({"results": positional_query(word1, word2, k)})
+                results = positional_query(word1, word2, k)
             else:
                 return jsonify({"error": "Positional query format incorrect"}), 400
         else:
             return jsonify({"error": "Invalid query format"}), 400
-    else:
-        return jsonify({"results": boolean_query(query)})
+    else:  # Boolean query
+        results = boolean_query(query)
+
+    # Fetch snippets for each document
+    snippets = {doc: get_document_snippet(doc, query.split()) for doc in results}
+
+    return jsonify({"results": results, "snippets": snippets})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
