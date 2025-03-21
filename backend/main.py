@@ -174,5 +174,29 @@ def search():
 
     return jsonify({"results": results, "snippets": snippets})
 
+
+
+
+# Full document fetch API
+
+@app.route("/document", methods=["GET"])
+def get_full_document():
+    doc_id = request.args.get("doc_id")
+    if not doc_id:
+        return jsonify({"error": "Document ID is required"}), 400
+
+    file_path = os.path.join(ABSTRACTS_FOLDER, f"{doc_id}.txt")
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": "Document not found"}), 404
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+        return jsonify({"doc_id": doc_id, "content": content})
+    except Exception as e:
+        return jsonify({"error": f"Error reading document: {str(e)}"}), 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

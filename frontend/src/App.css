@@ -145,11 +145,14 @@ body {
   margin-bottom: 10px;
   border-radius: 8px;
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .result-item:hover {
   transform: scale(1.02);
+  background-color: #f0f0f0;
 }
+
 
 .result-id {
   color: #e52e71;
@@ -206,4 +209,70 @@ body {
   margin: 0 10px;
   color: #7a7a7a;
   font-size: 18px;
+}
+
+
+/*Document showing*/
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 25px;
+  color: #202124;
+  border-radius: 12px;
+  width: 55%;
+  max-height: 80%;
+  overflow-y: auto;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: scaleIn 0.3s ease-in-out;
+}
+
+/* Simple Black Close Button */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.close-btn:hover {
+  transform: scale(1.2);
+}
+
+/* Fade-in and Scale Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+  }
+  to {
+    transform: scale(1);
+  }
 }

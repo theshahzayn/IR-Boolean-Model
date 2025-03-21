@@ -16,6 +16,11 @@ function App() {
   const [lastAcceptedSuggestion, setLastAcceptedSuggestion] = useState("");
   const [typingTimeout, setTypingTimeout] = useState(null);
 
+  const [fullDocument, setFullDocument] = useState(null);
+  const [docLoading, setDocLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+
   const inputRef = useRef(null);
   const suggestionBoxRef = useRef(null);
 
@@ -116,6 +121,22 @@ function App() {
     setLoading(false);
   };
 
+
+  const fetchFullDocument = async (docId) => {
+    setDocLoading(true);
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/document", {
+        params: { doc_id: docId },
+      });
+      setFullDocument(response.data);
+      setIsModalOpen(true); // Open the modal
+    } catch (err) {
+      console.error("Error fetching document:", err);
+      setFullDocument({ error: "Error loading document" });
+    }
+    setDocLoading(false);
+  };
+
   return (
     <div className="container">
       <motion.div
@@ -190,7 +211,7 @@ function App() {
               className="results-list"
             >
               {results.map((doc) => (
-                <li key={doc.id} className="result-item">
+                <li key={doc.id} className="result-item" onClick={() => fetchFullDocument(doc.id)}>
                   <strong className="result-id">📄 Document ID:</strong> {doc.id}
                   <p className="result-snippet" dangerouslySetInnerHTML={{ __html: doc.snippet }} />
                 </li>
@@ -199,7 +220,20 @@ function App() {
           </div>
         )}
       </motion.div>
+
+      {isModalOpen && fullDocument && (
+        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+            <h2>Document {fullDocument.doc_id}</h2>
+            <p>{fullDocument.content}</p>
+          </div>
+        </div>
+      )}
+
     </div>
+
+    
   );
 }
 
